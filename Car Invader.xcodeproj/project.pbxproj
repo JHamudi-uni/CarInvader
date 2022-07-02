@@ -88,7 +88,7 @@
 		6ACD64DC251BA21600F93687 = {
 			isa = PBXGroup;
 			children = (
-				6ACD64E7251BA21600F93687 /* Beach Race */,
+				6ACD64E7251BA21600F93687 /* Car Invader */,
 				6ACD64E6251BA21600F93687 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -101,7 +101,7 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		6ACD64E7251BA21600F93687 /* Beach Race */ = {
+		6ACD64E7251BA21600F93687 /* Car Invader */ = {
 			isa = PBXGroup;
 			children = (
 				6ACD64E8251BA21600F93687 /* AppDelegate.swift */,
@@ -116,7 +116,7 @@
 				6A64A352251FAF7A008DBF80 /* SoundPlayer.swift */,
 				6A067C5927480E9F00038C44 /* Car_Invader.xcdatamodeld */,
 			);
-			path = "Beach Race";
+			path = "Car Invader";
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
