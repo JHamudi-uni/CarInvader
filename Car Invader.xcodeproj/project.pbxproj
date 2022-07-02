@@ -345,7 +345,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = MQW42A67G8;
-				INFOPLIST_FILE = "Beach Race/Info.plist";
+				INFOPLIST_FILE = "$(SRCROOT)/Car Invader/Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 15.5;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -367,7 +367,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = MQW42A67G8;
-				INFOPLIST_FILE = "Beach Race/Info.plist";
+				INFOPLIST_FILE = "$(SRCROOT)/Car Invader/Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 15.5;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",

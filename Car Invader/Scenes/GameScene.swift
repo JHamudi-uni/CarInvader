@@ -7,7 +7,7 @@
 
 import SpriteKit
 import GameplayKit
-//comment
+
 
 var gameScore = 0
 var coins = 30000
