@@ -12,26 +12,33 @@ import GameplayKit
 var gameScore = 0
 var coins = 30000
 
+
+
 class GameScene: SKScene, SKPhysicsContactDelegate {
     
+    let worldNode = SKNode()
     let livesLabel = SKLabelNode(fontNamed: "The Bold Font")
     let scoreLabel = SKLabelNode(fontNamed: "The Bold Font")
+    var pauseButtonPic = "pauseButton"
+    let resumeButtonPic = "resumeButton"
     let player = SKSpriteNode(imageNamed: "BlueCar")
     let bulletSound = SKAction.playSoundFileNamed("laser.wav", waitForCompletion: false)
     let explosionSound = SKAction.playSoundFileNamed("explosion.wav", waitForCompletion: false)
     let schnellfeuerSound = SKAction.playSoundFileNamed("schnellfeuer.wav", waitForCompletion: false)
     let tapToStartLabel = SKLabelNode(fontNamed: "The Bold Font")
 
-    var livesNumber = 3
+    var livesNumber = 30
     var levelNumber = 0
     var car = SKSpriteNode()
     var currentGameState = gameState.preGame
     var gameArea: CGRect
+    var timer = Timer()
 
     
     enum gameState{
         case preGame //before start of the game
         case inGame // im Spiel
+        case pausedGame
         case afterGamer
     }
     
@@ -83,12 +90,39 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         fatalError("init(coder:) has not been implemented")
     }
     
-  
-    
+  /*
+    @objc func pauseGame(){
+        currentGameState = gameState.pausedGame
+        self.view?.isPaused = true
+        SKAction.wait(forDuration: 2.0)
 
+    }
+    
+    func keepGoing(){
+        self.view?.isPaused = false
+    }
+   
+   */
+    let pauseButton = SKSpriteNode(imageNamed: "pauseButton" )
+    let pauseButton2 = SKSpriteNode(imageNamed: "resumeButton" )
     func startGame(){
         
+        
+        pauseButton.position = CGPoint(x:self.size.width/2.005, y: self.size.height*0.90)
+        pauseButton.zPosition = 170
+        pauseButton.size.width = pauseButton.size.width*1.7
+        pauseButton.size.height = pauseButton.size.width*1.05
+        pauseButton.name = "pauseButton"
+        worldNode.addChild(pauseButton)
+        
+        
+        
+        
+        _ = Timer.scheduledTimer(timeInterval: 0.05, target: self, selector: #selector(GameScene.changeButtonImage), userInfo: nil, repeats: true)
+        changeBulletSpeed()
         currentGameState = gameState.inGame
+        //bulletSpeed0()
+
         let fadeOutAction = SKAction.fadeOut(withDuration: 0.5)
         let deleteAction = SKAction.removeFromParent()
         let deleteSequence = SKAction.sequence([fadeOutAction, deleteAction])
@@ -96,15 +130,24 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         
         let moveShipOntoScreenAction = SKAction.moveTo(y: self.size.height*0.2, duration: 0.5)
         let startLevelAction = SKAction.run(startNewLevel)
-        let startGameSequence = SKAction.sequence([moveShipOntoScreenAction, startLevelAction])
+        let startPowerupAction = SKAction.run(spawnPowerupRate)
+       // let updateButton = SKAction.run(changePauseButtonImage)
+        let startGameSequence = SKAction.sequence([moveShipOntoScreenAction, startLevelAction, startPowerupAction])
         player.run(startGameSequence)
-        
-        
         
         
     }
     
-    
+    func spawnPowerupRate(){
+        let spawnPup = SKAction.run(spawnPowerup)
+        let waitToSpawnPowerup = SKAction.wait(forDuration: 5)
+        let spawnPowerup = SKAction.sequence([waitToSpawnPowerup, spawnPup])
+        let spawnForeverPowerup = SKAction.repeatForever(spawnPowerup)
+        worldNode.run(spawnForeverPowerup)
+        
+        
+    }
+   
     func loseALive(){
         
         livesNumber -= 1
@@ -115,25 +158,48 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         let scaleSequence = SKAction.sequence([scaleUp, scaleDown])
         livesLabel.run(scaleSequence)
         
+        if livesNumber == 1 {
+            livesLabel.fontColor = UIColor.red
+        }
         if livesNumber == 0 {
             runGameOver()
+            //self.view?.isPaused = true
             coins += gameScore
         }
         
     }
+    var boolean = true
     
     func changeBulletSpeed(){
-         bulletSpeed1()
+        if(boolean == true){
+            timer.invalidate()
+            bulletSpeed0()
+            
+        }else {
+            timer.invalidate()
+            bulletSpeed1()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                self.timer.invalidate()
+            }
+            boolean = true
+            
+        }
+        
+   
     }
+    
+    //let worldNode = SKNode()
+
+ 
+   
     
     
     
     override func didMove(to view: SKView) {
        
+        addChild(worldNode)
+        
         gameScore = 0
-        
- 
-        
         self.anchorPoint = CGPoint(x: 0, y: 0)
         
         self.physicsWorld.contactDelegate = self
@@ -147,8 +213,11 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         scoreLabel.position = CGPoint(x: self.size.width*0.10, y: self.size.height + scoreLabel.frame.size.height)
         scoreLabel.zPosition = 100
         self.addChild(scoreLabel)
+
         
         
+        
+
         
         livesLabel.text = "Lives: 3"
         livesLabel.fontSize = 70
@@ -184,7 +253,9 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                                       y: self.size.height*CGFloat(i))
         background.zPosition = 0
         background.name = "Background"
-        self.addChild(background)
+        worldNode.addChild(background)
+        //self.addChild(background)
+
             
         }
       //setUp()
@@ -198,7 +269,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         player.physicsBody!.categoryBitMask = PhysicsCategories.Player
         player.physicsBody!.collisionBitMask = PhysicsCategories.None
         player.physicsBody!.contactTestBitMask = PhysicsCategories.Enemy
-        self.addChild(player)
+        //self.addChild(player)
+        worldNode.addChild(player)
                     
         
         
@@ -213,7 +285,6 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     var amountToMovePerSecond: CGFloat = 600.0          // wie schnell background sich bewegt
     
     override func update(_ currentTime: TimeInterval) {  //Ruft showroadstrip jeden frame/s: 60 frames => 60 mal pro sekunde
-     
         //showRoadStrip()
         
         if lastUpdateTime == 0 {
@@ -228,7 +299,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
          
         let amountToMoveBackground = amountToMovePerSecond * CGFloat(deltaFrameTime)
         
-        self.enumerateChildNodes(withName: "Background"){
+        worldNode.enumerateChildNodes(withName: "Background"){
             background, stop in
             if self.currentGameState == gameState.inGame{
                 background.position.y -= amountToMoveBackground
@@ -244,13 +315,13 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         }
   
     }
-
+/*
     func setUp(){
         
-        car = self.childNode(withName: "car") as! SKSpriteNode
+        car = worldNode.childNode(withName: "car") as! SKSpriteNode
     }
-    
-
+   */
+/*
     @objc func createRoadStrip(){
         
         let roadStrip = SKShapeNode(rectOf: CGSize(width: 10, height: 40))
@@ -261,14 +332,16 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         roadStrip.zPosition = 10
         roadStrip.position.x = 0
         roadStrip.position.y = 700
-        addChild(roadStrip)
+        //addChild(roadStrip)
+        worldNode.addChild(roadStrip)
+
     
         
         
     }
-    
+    */
    
-  
+  /*
     func showRoadStrip(){
         
         enumerateChildNodes(withName: "roadStrip", using: {(roadStrip, stop) in
@@ -278,7 +351,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         })
         
     }
-    
+    */
     //MARK: - GameOver
    
     func runGameOver(){
@@ -298,7 +371,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         }
         
         let changeSceneAction = SKAction.run(changeScene)
-        let waitToChangeScene = SKAction.wait(forDuration: 1)
+        let waitToChangeScene = SKAction.wait(forDuration: 0)
         let changeSceneSequence = SKAction.sequence([waitToChangeScene, changeSceneAction])
         self.run(changeSceneSequence)
     }
@@ -313,15 +386,17 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         
     }
 
-    
+    func stopTimer(){
+        timer.invalidate()
+    }
     
    // MARK: - didBegin Contact
     
     //Läuft wenn es Konakt zwischen Physiksbodys gibt.
     
     func didBegin(_ contact: SKPhysicsContact) {
-        
-        
+
+
         var body1 = SKPhysicsBody()
         var body2 = SKPhysicsBody()
         
@@ -338,22 +413,72 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         
         if  body1.categoryBitMask == PhysicsCategories.Player && body2.categoryBitMask == PhysicsCategories.Powerup{
             
+            
             spawnSchnellfeuerEffekt(spawnPosition: body1.node!.position)  // ersetzen durch coole effekte wenn man powerups einsammelt
             
             // Funktion für schnellfeuer für kurze zeit hier ersetzen !
-            let changeBulletSpeedAction = SKAction.run(bulletSpeed1)
+            
+          
+            //timer.invalidate()
+            
+            timer.invalidate()
+            boolean = false
+            changeBulletSpeed()
+        
+            //self.bulletSpeed1()
+            if currentGameState == gameState.inGame {
+            //boolean = false
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                let stopTimer = SKAction.run(self.stopTimer)
+    
+                self.run(stopTimer)
+                
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    self.changeBulletSpeed()
+
+                    
+                }
+                //self.boolean = true
+                //self.changeBulletSpeed()
+                
+            }
+            }
+         
+            
+            
+            //self.timer.invalidate()
+            
+            //let changeBulletSpeedAction = SKAction.run(bulletSpeed1)
+            //let returnNormalBulletSpeedAction = SKAction.run(bulletSpeed0)
+            
 //            let waitToEndPowerup = SKAction.wait(forDuration: 5)
 //            let returnBulletSpeedAction = SKAction.run(bulletSpeed0)
-            let changeBulletSpeed = SKAction.sequence([changeBulletSpeedAction])
+          //  let changeBulletSpeed = SKAction.sequence([changeBulletSpeedAction])
             
             
         
-            run(changeBulletSpeed)
-        
+            //self.run(changeBulletSpeed)
+            //worldNode.run(changeBulletSpeed)
             body2.node?.removeFromParent()
+            //SKAction.wait(forDuration: 1)
+           /*
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                //self.timer.invalidate()
+                //num = true
+                // HIER
+                self.bulletSpeed0()
+                self.timer.invalidate()
+                
+             }
           
+            timer.invalidate()
+            
+            //num = true
+            */
+           
+           
         }
-        
+     
         if body1.categoryBitMask == PhysicsCategories.Player && body2.categoryBitMask == PhysicsCategories.Enemy{
             
             if body1.node != nil{
@@ -367,7 +492,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             
             body1.node?.removeFromParent()
             body2.node?.removeFromParent()
-            
+
             runGameOver()
             coins += gameScore
         }
@@ -416,7 +541,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         explosion.position = spawnPosition
         explosion.zPosition = 3
         explosion.setScale(3)
-        self.addChild(explosion)
+        worldNode.addChild(explosion)
+        //self.addChild(explosion)
         
         let scaleIn = SKAction.scale(to: 1, duration: 0.1)
         let fadeOut = SKAction.fadeOut(withDuration: 0.1)
@@ -425,7 +551,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         let explosionSequence = SKAction.sequence([explosionSound, scaleIn, fadeOut, delete])
         
         explosion.run(explosionSequence)
-        
+        //worldNode.run(explosionSequence)
     }
     
     
@@ -435,7 +561,9 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         schnellfeuerEffekt.position = spawnPosition
         schnellfeuerEffekt.zPosition = 3
         schnellfeuerEffekt.setScale(3)
-        self.addChild(schnellfeuerEffekt)
+        //self.addChild(schnellfeuerEffekt)
+        worldNode.addChild(schnellfeuerEffekt)
+
         
         let scaleIn = SKAction.scale(to: 1, duration: 0.1)
         let fadeOut = SKAction.fadeOut(withDuration: 0.1)
@@ -452,9 +580,9 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     // Läuft wenn wir unseren finger bewegen
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
         for touch: AnyObject in touches{
-            
-            let pointOfTouch = touch.location(in: self)
-            let previousPointOfTouch = touch.previousLocation(in: self)
+            //changeButtonImage()
+            let pointOfTouch = touch.location(in: worldNode)
+            let previousPointOfTouch = touch.previousLocation(in: worldNode)
             
             let amountDragged = pointOfTouch.x - previousPointOfTouch.x
             //let amountDragged2 = pointOfTouch.y - previousPointOfTouch.y
@@ -479,8 +607,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     @objc func fireBullet(){
       
-     
-        
+  
         let bullet = SKSpriteNode(imageNamed: "bullet\(nummer)")
         bullet.name = "Bullet"
         bullet.setScale(0.4)
@@ -494,7 +621,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         let action = SKAction.moveTo(y: self.size.height + 30, duration: 1.0)
         bullet.run(SKAction.repeatForever(action))
         
-        self.addChild(bullet)
+        //self.addChild(bullet)
+        worldNode.addChild(bullet)
        
             let moveBullet = SKAction.moveTo(y: self.size.height + bullet.size.height, duration: 1)
             let deleteBullet = SKAction.removeFromParent()
@@ -505,19 +633,39 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     }
 
   
-    func bulletSpeed0(){
+    @objc func bulletSpeed0(){
         
         if currentGameState != gameState.afterGamer {
-        _ = Timer.scheduledTimer(timeInterval: 0.3, target: self, selector: #selector(GameScene.fireBullet), userInfo: nil, repeats: true)
+            self.timer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: true, block: { _ in
+                self.fireBullet()
+            })
         }
     }
     
     func bulletSpeed1(){
         
-        _ = Timer.scheduledTimer(timeInterval: 0.15, target: self, selector: #selector(GameScene.fireBullet), userInfo: nil, repeats: true)
+        if currentGameState != gameState.afterGamer {
+            self.timer = Timer.scheduledTimer(withTimeInterval: 0.15, repeats: true, block: { _ in
+                self.fireBullet()
+            })
+        }
+        
+//        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+//            self.timer.invalidate()
+//
+//         }
+
+        
+        
+        
+    }
+   /*
+    func noBulletSpeed(){
+        
+        _ = Timer.scheduledTimer(timeInterval: 0.0, target: self, selector: #selector(GameScene.fireBullet), userInfo: nil, repeats: false)
            
     }
-    
+    */
 
 //    func updateCounting(){
 //        NSLog("counting..")
@@ -528,11 +676,134 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     
     var bool = true
+    var n = 1
+    
+
+   
+//    func changePauseButtonImage(){
+//
+//        if (n == 1) {
+//            pauseButtonPic.removeAll()
+//            pauseButtonPic = "pauseButton"
+////            pauseButton.zPosition = 0
+////            pauseButton.removeFromParent()
+//        }else {
+//            pauseButtonPic = "resumeButton"
+//        }
+//    }
+//
+    @objc func changeButtonImage(){
+        
+        let scaleUp = SKAction.scale(to: 1.5, duration: 0.2)
+        let scaleDown = SKAction.scale(to: 1, duration: 0.2)
+        let scaleSequence = SKAction.sequence([scaleUp, scaleDown])
+   
+    
+        if currentGameState == gameState.pausedGame{
+            //pauseButton.run(scaleSequence)
+            pauseButton.run(scaleSequence)
+            if let child = worldNode.childNode(withName: "pauseButton") as? SKSpriteNode {
+                child.removeFromParent()
+            }
+            
+        }else {
+            
+        }
+    }
+    
     
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        //spawnEnemy()
-      
+   
+        for touch: AnyObject in touches{
+        let pointOfTouch = touch.location(in: self)
+        let nodeITapped = atPoint(pointOfTouch)
+            
+            
+//            let pauseButton = SKSpriteNode(imageNamed: pauseButtonPic )
+//            pauseButton.position = CGPoint(x:self.size.width/2.005, y: self.size.height*0.90)
+//            pauseButton.zPosition = 170
+//            pauseButton.size.width = pauseButton.size.width*1.7
+//            pauseButton.size.height = pauseButton.size.width*1.05
+//            pauseButton.name = "pauseButton"
+//            worldNode.addChild(pauseButton)
+//
+            
+            
+            pauseButton2.position = CGPoint(x:self.size.width/2.005, y: self.size.height*0.90)
+            pauseButton2.zPosition = 171
+            pauseButton2.size.width = pauseButton.size.width*1.0
+            pauseButton2.size.height = pauseButton.size.width*1.05
+            pauseButton2.name = "pauseButton2"
+           
         
+        
+
+        if nodeITapped.name == "pauseButton"{
+            currentGameState = gameState.pausedGame
+//            pauseButtonPic = "resumeButton"
+            print(n)
+            //changeButtonImage()
+//            if let child = worldNode.childNode(withName: "pauseButton") as? SKSpriteNode {
+//                child.removeFromParent()
+//            }
+          
+            //pauseButton.removeFromParent()
+            //pauseButton.removeFromParent()
+           
+            //changePauseButtonImage()
+            
+            
+            worldNode.addChild(pauseButton2)
+            //pauseButton.zPosition = 0
+            n = 0
+        
+            run(SoundPlayer.shared.buttonSound)
+            
+            //pauseButton.isHidden = true
+            //pauseButton.run(SKAction.fadeOut(withDuration: 0.5))
+            //pauseButtonPic = "tree"
+            timer.invalidate()
+            worldNode.isPaused = true
+            physicsWorld.speed = 0
+           
+            
+            //self.isUserInteractionEnabled = true
+            //noBulletSpeed()
+            //bulletSpeed1()
+            //Timer.invalidate()
+
+         
+        }else if nodeITapped.name == "pauseButton2"{
+            currentGameState = gameState.inGame
+            print(n)
+            if let child = worldNode.childNode(withName: "pauseButton2") as? SKSpriteNode {
+                child.removeFromParent()
+            }
+          
+           
+            
+            //changePauseButtonImage()
+            n = 1
+            timer.invalidate()
+            
+         
+
+              
+            run(SoundPlayer.shared.buttonSound)
+            changeBulletSpeed()
+            //bulletSpeed0()
+            worldNode.addChild(pauseButton)
+
+               
+                //pauseButtonPic = "tree"
+
+                
+            worldNode.isPaused = false
+            physicsWorld.speed = 1.0
+             
+        }
+            
+            
         if currentGameState == gameState.preGame{
             startGame()
         }else if currentGameState == gameState.inGame {
@@ -541,23 +812,32 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             
             
             if(bool && bulletImageName == "bullet0"){
-                bulletSpeed0()
+                /*
+                _ = Timer.scheduledTimer(timeInterval: 0.45, target: self, selector: #selector(GameScene.bulletSpeed0), userInfo: nil, repeats: true)
+                 */
+                //bulletSpeed0()
                 bool = false
+                
             }else if (bool && bulletImageName == "bullet1"){
                 
-                bulletSpeed0()
+                //bulletSpeed0()
                 bool = false
             }else if (bool && bulletImageName == "bullet2"){
                 
-                bulletSpeed0()
+                //bulletSpeed0()
                 bool = false
             }
-
-
+            
+            
+        }else if currentGameState == gameState.pausedGame {
+            let fadeOutAction = SKAction.fadeOut(withDuration: 0.5)
+            let deleteAction = SKAction.removeFromParent()
+            let deleteSequence = SKAction.sequence([fadeOutAction, deleteAction])
+            //pauseButton.run(deleteSequence)
         }
+        }}
         
-        
-    }
+       
     
     func spawnPowerup(){
         
@@ -569,7 +849,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         
         let schnellfeuer = SKSpriteNode(imageNamed: "schnellfeuer")
         schnellfeuer.name = "Powerup"
-        schnellfeuer.setScale(0.25)
+        schnellfeuer.setScale(0.8)
         schnellfeuer.position = startPoint
         schnellfeuer.zPosition = 2
         schnellfeuer.physicsBody = SKPhysicsBody(rectangleOf: schnellfeuer.size)
@@ -578,9 +858,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         schnellfeuer.physicsBody!.collisionBitMask = PhysicsCategories.None
         schnellfeuer.physicsBody!.contactTestBitMask = PhysicsCategories.Player
 
-        self.addChild(schnellfeuer)
-      
-        
+        //self.addChild(schnellfeuer)
+        worldNode.addChild(schnellfeuer)
         //let loseALifeAction = SKAction.run(loseALive)
     
         //let gameOverAction = SKAction.run(gameOver)
@@ -590,6 +869,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         
         if currentGameState == gameState.inGame{
             schnellfeuer.run(PowerupSequnce)
+            //worldNode.run(PowerupSequnce)
             //schnellfeuer.run(enemySequnce)
         }
             
@@ -620,8 +900,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         enemy.physicsBody!.collisionBitMask = PhysicsCategories.None
         enemy.physicsBody!.contactTestBitMask = PhysicsCategories.Player | PhysicsCategories.Bullet
 
-        self.addChild(enemy)
-
+        //self.addChild(enemy)
+        worldNode.addChild(enemy)
        
        
         let loseALifeAction = SKAction.run(loseALive)
@@ -631,6 +911,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         
         if currentGameState == gameState.inGame{
             enemy.run(enemySequnce)
+        
+            //worldNode.run(enemySequnce)
         }
        
       /*
@@ -674,29 +956,32 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             print("cant find level info")
         }
         
+        //let pauseButton = SKAction.run(changePauseButtonImage)
+        //let updatePauseButton = SKAction.repeatForever(pauseButton)
+        //worldNode.run(updatePauseButton)
+        
         
         let spawn = SKAction.run(spawnEnemy)
         let waitToSpawn = SKAction.wait(forDuration: levelDuration) // Zeit für enemy spawn
         let spawnSequence = SKAction.sequence([waitToSpawn, spawn])
         let spawnForever = SKAction.repeatForever(spawnSequence)
         
-        let spawnPup = SKAction.run(spawnPowerup)
-        let waitToSpawnPowerup = SKAction.wait(forDuration: 5)
-        let spawnPowerup = SKAction.sequence([waitToSpawnPowerup, spawnPup])
-        let spawnForeverPowerup = SKAction.repeatForever(spawnPowerup)
-        self.run(spawnForeverPowerup)
-        
-        
-        self.run(spawnForever, withKey: "spawningEnemies")
+//        let spawnPup = SKAction.run(spawnPowerup)
+//        let waitToSpawnPowerup = SKAction.wait(forDuration: 5)
+//        let spawnPowerup = SKAction.sequence([waitToSpawnPowerup, spawnPup])
+//        let spawnForeverPowerup = SKAction.repeatForever(spawnPowerup)
+//        worldNode.run(spawnForeverPowerup)
+//
+//
+          worldNode.run(spawnForever, withKey: "spawningEnemies")
     }
-    
     
     
       func addScore(){
           
         if gameScore < 25 {
           gameScore += 1
-        } else if gameScore >= 25 && gameScore < 2  {
+        } else if gameScore >= 25 && gameScore < 75  {
           gameScore += 2  // nach 25 autos
         } else if gameScore >= 75 && gameScore < 275  {
             gameScore += 4  // nach 50 autos
@@ -712,4 +997,5 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
               
           }
       }
+
     }
